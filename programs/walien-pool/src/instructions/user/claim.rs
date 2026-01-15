@@ -4,13 +4,18 @@ use crate::{
     events::ClaimEvent,
     state::{GlobalConfig, UserPosition, UserSummary},
 };
-use anchor_lang::prelude::program_pack::Pack;
 use anchor_lang::prelude::*;
-use anchor_spl::token::spl_token::state::Account as SplTokenAccount;
-use anchor_spl::{
-    associated_token::{create, AssociatedToken, Create},
-    token::{self, Mint, Token, TokenAccount},
+use anchor_spl::token_2022::spl_token_2022::{
+    self,
+    extension::StateWithExtensions,
+    state::Account as Token2022Account,
 };
+use anchor_spl::token::{self, Token, TokenAccount as SplTokenAccount, Mint as SplMint};
+use anchor_spl::token_2022::{Token2022, TransferChecked, transfer_checked};
+use anchor_spl::token_interface::{
+    Mint as Token2022Mint, TokenAccount as Token2022TokenAccount,
+};
+use anchor_spl::associated_token::{create, AssociatedToken, Create};
 
 #[derive(Accounts)]
 #[instruction(possition_index: u64)]
@@ -29,7 +34,7 @@ pub struct Claim<'info> {
     #[account(
         constraint = global_config_account.usdc_mint == usdc_mint.key()
     )]
-    pub usdc_mint: Account<'info, Mint>,
+    pub usdc_mint: Account<'info, SplMint>,
     #[account(
         mut,
         seeds = [VAULT_USDC_SEED],
@@ -37,13 +42,13 @@ pub struct Claim<'info> {
         token::mint = usdc_mint,
         token::authority = global_config_account,
     )]
-    pub program_usdc_token_account: Account<'info, TokenAccount>,
+    pub program_usdc_token_account: Account<'info, SplTokenAccount>,
     #[account(
         mut,
         associated_token::mint = usdc_mint,
         associated_token::authority = admin
     )]
-    pub admin_usdc_token_account: Account<'info, TokenAccount>,
+    pub admin_usdc_token_account: Account<'info, SplTokenAccount>,
     #[account(mut)]
     pub caller: Signer<'info>,
 
@@ -59,15 +64,16 @@ pub struct Claim<'info> {
     #[account(
         constraint = global_config_account.walien_mint == Some(walien_mint.key())
     )]
-    pub walien_mint: Account<'info, Mint>,
+    pub walien_mint: InterfaceAccount<'info, Token2022Mint>,
     #[account(
         mut,
         seeds = [VAULT_WALIEN_SEED],
         bump,
         token::mint = walien_mint,
         token::authority = global_config_account,
+        token::token_program = token_program_2022,
     )]
-    pub program_walien_token_account: Account<'info, TokenAccount>,
+    pub program_walien_token_account: InterfaceAccount<'info, Token2022TokenAccount>,
     #[account(
         mut,
         seeds = [USER_SUMMARY_SEED, user.key().as_ref()],
@@ -85,6 +91,7 @@ pub struct Claim<'info> {
     #[account(mut)]
     pub user_walien_token_account: UncheckedAccount<'info>,
     pub token_program: Program<'info, Token>,
+    pub token_program_2022: Program<'info, Token2022>,
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub system_program: Program<'info, System>,
 }
@@ -103,17 +110,18 @@ impl<'info> Claim<'info> {
         let usdc_spent = ctx.accounts.user_account.usdc_spent;
         let position_index = ctx.accounts.user_account.index;
         let user_position = ctx.accounts.user_account.key();
-        let ata_already_exists = ctx.accounts.user_walien_token_account.owner == &token::ID
+        let ata_already_exists = ctx.accounts.user_walien_token_account.owner == &spl_token_2022::ID
             && !ctx.accounts.user_walien_token_account.data_is_empty();
 
         if ata_already_exists {
             let user_walien_ai = ctx.accounts.user_walien_token_account.to_account_info();
-
-            let token_account = SplTokenAccount::unpack(&user_walien_ai.try_borrow_data()?)?;
+            let data = user_walien_ai.try_borrow_data()?;
+            
+            let token_account = StateWithExtensions::<Token2022Account>::unpack(&data)?;
 
             require!(
-                token_account.mint == ctx.accounts.walien_mint.key()
-                    && token_account.owner == ctx.accounts.user.key(),
+                token_account.base.mint == ctx.accounts.walien_mint.key()
+                    && token_account.base.owner == ctx.accounts.user.key(),
                 ErrorCode::InvalidWalienTokenAccount
             );
         }
@@ -131,7 +139,7 @@ impl<'info> Claim<'info> {
                 authority: ctx.accounts.user.to_account_info(),
                 mint: ctx.accounts.walien_mint.to_account_info(),
                 system_program: ctx.accounts.system_program.to_account_info(),
-                token_program: ctx.accounts.token_program.to_account_info(),
+                token_program: ctx.accounts.token_program_2022.to_account_info(),
             };
             create(CpiContext::new(
                 ctx.accounts.associated_token_program.to_account_info(),
@@ -140,15 +148,16 @@ impl<'info> Claim<'info> {
         }
 
         {
-            let cpi_accounts = token::Transfer {
+            let cpi_accounts = TransferChecked {
                 from: ctx.accounts.program_walien_token_account.to_account_info(),
                 to: ctx.accounts.user_walien_token_account.to_account_info(),
                 authority: ctx.accounts.global_config_account.to_account_info(),
+                mint: ctx.accounts.walien_mint.to_account_info(),
             };
-            let cpi_program = ctx.accounts.token_program.to_account_info();
+            let cpi_program = ctx.accounts.token_program_2022.to_account_info();
             let transfer_ctx = CpiContext::new_with_signer(cpi_program, cpi_accounts, signer);
 
-            token::transfer(transfer_ctx, ctx.accounts.user_account.walien_allocation)?;
+            transfer_checked(transfer_ctx, ctx.accounts.user_account.walien_allocation, ctx.accounts.walien_mint.decimals)?;
         }
 
         {

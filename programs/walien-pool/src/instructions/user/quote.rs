@@ -25,6 +25,7 @@ mod tests {
     use super::*;
     use crate::constants::{USDC_DECIMALS, WALIEN_DECIMALS};
     use crate::{errors::ErrorCode, state::GlobalConfig};
+    use libm::pow;
 
     fn normalize_price_to_ui(sqrt_price_x64: u128) -> f64 {
         let sqrt_f = sqrt_price_x64 as f64 / (1u128 << 64) as f64;

@@ -1,7 +1,8 @@
 use anchor_lang::prelude::*;
 use anchor_spl::{
     associated_token::AssociatedToken,
-    token::{Mint, Token, TokenAccount},
+    token_2022::Token2022,
+    token_interface::{Mint as Token2022Mint, TokenAccount as Token2022TokenAccount},
 };
 
 use crate::constants::WALIEN_DECIMALS;
@@ -26,7 +27,7 @@ pub struct SetWalien<'info> {
         constraint = global_config_account.admin == admin.key())]
     pub admin: Signer<'info>,
     #[account()]
-    pub walien_mint: Account<'info, Mint>,
+    pub walien_mint: InterfaceAccount<'info, Token2022Mint>,
     #[account(
         init,
         payer = admin,
@@ -35,9 +36,9 @@ pub struct SetWalien<'info> {
         token::mint = walien_mint,
         token::authority = global_config_account,
     )]
-    pub program_walien_token_account: Account<'info, TokenAccount>,
+    pub program_walien_token_account: InterfaceAccount<'info, Token2022TokenAccount>,
     pub associated_token_program: Program<'info, AssociatedToken>,
-    pub token_program: Program<'info, Token>,
+    pub token_program: Program<'info, Token2022>,
     pub system_program: Program<'info, System>,
 }
 
