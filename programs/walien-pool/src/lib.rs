@@ -22,7 +22,7 @@ security_txt! {
     source_code: "https://github.com/alien-id/market-sol-contract"
 }
 
-declare_id!("Hp8rd1zGZdyJNidxx4461e9buwGhab9DcGnsc23wha3");
+declare_id!("HEBAUSMDyqBGbEr74ywsctAJJYiJpWarNWgRCyGgkffN");
 
 #[program]
 pub mod walien_pool {

@@ -6,13 +6,13 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-walien_pool = "Hp8rd1zGZdyJNidxx4461e9buwGhab9DcGnsc23wha3"
+walien_pool = "HEBAUSMDyqBGbEr74ywsctAJJYiJpWarNWgRCyGgkffN"
 
 [programs.devnet]
-walien_pool = "Hp8rd1zGZdyJNidxx4461e9buwGhab9DcGnsc23wha3"
+walien_pool = "HEBAUSMDyqBGbEr74ywsctAJJYiJpWarNWgRCyGgkffN"
 
 [programs.mainnet]
-walien_pool = "Hp8rd1zGZdyJNidxx4461e9buwGhab9DcGnsc23wha3"
+walien_pool = "HEBAUSMDyqBGbEr74ywsctAJJYiJpWarNWgRCyGgkffN"
 
 [registry]
 url = "https://api.apr.dev"
