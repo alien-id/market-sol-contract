@@ -1,0 +1,26 @@
+[toolchain]
+package_manager = "npm"
+
+[features]
+resolution = true
+skip-lint = false
+
+[programs.localnet]
+walien_pool = "FubYPg4HrmbeNUVNB3av6RuUuzoZkFyRqqiY2TYvGiuC"
+
+[programs.devnet]
+walien_pool = "FubYPg4HrmbeNUVNB3av6RuUuzoZkFyRqqiY2TYvGiuC"
+
+[programs.mainnet]
+walien_pool = "FubYPg4HrmbeNUVNB3av6RuUuzoZkFyRqqiY2TYvGiuC"
+
+[registry]
+url = "https://api.apr.dev"
+
+[provider]
+cluster = "localnet"
+wallet = "~/.config/solana/id.json"
+
+[path]
+idl_path = "./target/idl/walien_pool.json"
+binary_path = "./target/deploy/walien_pool.so"
